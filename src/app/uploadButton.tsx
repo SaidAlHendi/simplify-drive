@@ -26,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { Doc } from '../../convex/_generated/dataModel'
 const formSchema = z.object({
   title: z.string().min(1).max(200),
   file: z
@@ -55,17 +56,25 @@ export default function UploadButton() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       if (!orgId) return
+      const fileType = values.file[0].type
       const postUrl = await generateUploadUrl()
       const result = await fetch(postUrl, {
         method: 'POST',
-        headers: { 'Content-Type': values.file[0].type },
+        headers: { 'Content-Type': fileType },
         body: values.file[0],
       })
       const { storageId } = await result.json()
+      const types = {
+        'image/png': 'image',
+        'application/pdf': 'pdf',
+        'text/csv': 'csv',
+      } as Record<string, Doc<'files'>['type']>
+
       await createFile({
         name: values.title,
         orgId: orgId,
         fileId: storageId,
+        type: types[fileType],
       })
       form.reset()
       setIsFileDialogOpen(false)
