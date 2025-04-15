@@ -12,7 +12,12 @@ export default defineSchema({
     type: fileTypes,
     orgId: v.string(),
     fileId: v.id('_storage'),
-  }).index('by_orgId', ['orgId']),
+  })
+    .index('by_orgId', ['orgId'])
+    .searchIndex('search_body', {
+      searchField: 'name',
+      filterFields: ['orgId'],
+    }),
   users: defineTable({
     tokenIdentifier: v.string(),
     orgIds: v.array(v.string()),

@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button'
 import { useOrganization, useUser } from '@clerk/nextjs'
 import { useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
+import { api } from '../../../../convex/_generated/api'
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Doc } from '../../convex/_generated/dataModel'
+import { Doc } from '../../../../convex/_generated/dataModel'
 const formSchema = z.object({
   title: z.string().min(1).max(200),
   file: z
