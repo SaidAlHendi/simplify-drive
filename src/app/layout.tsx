@@ -32,7 +32,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ConvexClientProvider>
-          <Toaster />
+          <Toaster richColors />
           <Header />
           {children}
           <Footer />
