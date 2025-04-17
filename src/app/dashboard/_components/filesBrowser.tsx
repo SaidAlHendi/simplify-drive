@@ -12,9 +12,11 @@ import UploadButton from '../_components/uploadButton'
 export default function FilesBrowser({
   title,
   favorites,
+  deletedOnly,
 }: {
   title: string
   favorites?: boolean
+  deletedOnly?: boolean
 }) {
   const organzation = useOrganization()
   const user = useUser()
@@ -25,7 +27,7 @@ export default function FilesBrowser({
   }
   const getFiles = useQuery(
     api.files.getFiles,
-    orgId ? { orgId, query, favorites } : 'skip'
+    orgId ? { orgId, query, favorites, deletedOnly } : 'skip'
   )
   const getFavorites = useQuery(
     api.files.getAllFavorites,

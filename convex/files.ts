@@ -1,8 +1,15 @@
 import { ConvexError, v } from 'convex/values'
-import { mutation, MutationCtx, query, QueryCtx } from './_generated/server'
+import {
+  internalMutation,
+  mutation,
+  MutationCtx,
+  query,
+  QueryCtx,
+} from './_generated/server'
 import { getUser } from './users'
-import { fileTypes } from './schema'
+import { fileTypes, roles } from './schema'
 import { Id } from './_generated/dataModel'
+import { access } from 'fs'
 
 export const generateUploadUrl = mutation(async (ctx) => {
   const idenity = await ctx.auth.getUserIdentity()
@@ -18,7 +25,8 @@ async function hatAccessToOrg(ctx: QueryCtx | MutationCtx, orgId: string) {
   }
   const user = await getUser(ctx, idenity.tokenIdentifier)
   const hasAccess =
-    user.orgIds.includes(orgId) || user.tokenIdentifier.includes(orgId)
+    user.orgIds.some((item) => item.orgId === orgId) ||
+    user.tokenIdentifier.includes(orgId)
   if (!hasAccess) {
     return null
   }
@@ -41,6 +49,8 @@ export const createFile = mutation({
       orgId: args.orgId,
       fileId: args.fileId,
       type: args.type,
+      shouldDelete: false,
+      userId: hasAccess.user._id,
     })
   },
 })
@@ -50,6 +60,7 @@ export const getFiles = query({
     orgId: v.string(),
     query: v.optional(v.string()),
     favorites: v.optional(v.boolean()),
+    deletedOnly: v.optional(v.boolean()),
   },
   async handler(ctx, args) {
     const hasAccess = await hatAccessToOrg(ctx, args.orgId)
@@ -63,13 +74,20 @@ export const getFiles = query({
       files = await ctx.db
         .query('files')
         .withSearchIndex('search_body', (q) =>
-          q.search('name', query).eq('orgId', args.orgId)
+          q
+            .search('name', query)
+            .eq('orgId', args.orgId)
+            .eq('shouldDelete', args.deletedOnly || false)
         )
         .collect()
     } else {
       files = await ctx.db
         .query('files')
-        .withIndex('by_orgId', (q) => q.eq('orgId', args.orgId))
+        .withIndex('by_orgId', (q) =>
+          q
+            .eq('orgId', args.orgId)
+            .eq('shouldDelete', args.deletedOnly || false)
+        )
         .collect()
     }
     if (args.favorites) {
@@ -83,6 +101,9 @@ export const getFiles = query({
         favorites.some((favorite) => favorite.fileId === file._id)
       )
     }
+    if (args.deletedOnly) {
+      files = files.filter((file) => file.shouldDelete)
+    }
     return files
   },
 })
@@ -94,7 +115,16 @@ export const deleteFile = mutation({
     if (!hasAccess) {
       throw new ConvexError('You dont have access to delete this file!')
     }
-    await ctx.db.delete(args.fileId)
+    const isAdmin =
+      hasAccess.user.orgIds.find((org) => org.orgId === hasAccess.file.orgId)
+        ?.role === 'admin'
+    if (!isAdmin) {
+      throw new ConvexError('you dount have access to delete this file')
+    }
+    await ctx.db.patch(args.fileId, {
+      shouldDelete: true,
+    })
+    // await ctx.db.delete(args.fileId)
   },
 })
 
@@ -178,5 +208,41 @@ export const getAllFavorites = query({
       )
       .collect()
     return favorites
+  },
+})
+
+export const restoreFile = mutation({
+  args: { fileId: v.id('files') },
+  async handler(ctx, args) {
+    const hasAccess = await hasAccessToFile(ctx, args.fileId)
+    if (!hasAccess) {
+      throw new ConvexError('You dont have access to delete this file!')
+    }
+    const isAdmin =
+      hasAccess.user.orgIds.find((org) => org.orgId === hasAccess.file.orgId)
+        ?.role === 'admin'
+    if (!isAdmin) {
+      throw new ConvexError('you dount have access to delete this file')
+    }
+    await ctx.db.patch(args.fileId, {
+      shouldDelete: false,
+    })
+  },
+})
+
+export const deleteForEver = internalMutation({
+  args: {},
+  async handler(ctx) {
+    const files = await ctx.db
+      .query('files')
+      .withIndex('by_shouldDelete', (q) => q.eq('shouldDelete', true))
+      .collect()
+
+    await Promise.all(
+      files.map(async (file) => {
+        await ctx.storage.delete(file.fileId)
+        return await ctx.db.delete(file._id)
+      })
+    )
   },
 })

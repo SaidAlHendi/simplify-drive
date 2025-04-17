@@ -1,9 +1,11 @@
-import React from 'react'
+'use client'
 
-type Props = {}
+import FilesBrowser from '../_components/filesBrowser'
 
-const page = (props: Props) => {
-  return <div>page</div>
+export default function FavoritesPage() {
+  return (
+    <div>
+      <FilesBrowser title='Trash' deletedOnly />
+    </div>
+  )
 }
-
-export default page
