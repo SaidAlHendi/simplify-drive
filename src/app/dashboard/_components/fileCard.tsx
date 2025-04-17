@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Doc } from '../../../../convex/_generated/dataModel'
+import { Doc, Id } from '../../../../convex/_generated/dataModel'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -20,6 +20,8 @@ import {
   GanttChartIcon,
   ImageIcon,
   MoreVertical,
+  StarHalf,
+  StarIcon,
   Trash2Icon,
 } from 'lucide-react'
 import {
@@ -37,10 +39,19 @@ import { api } from '../../../../convex/_generated/api'
 import { toast } from 'sonner'
 import Image from 'next/image'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { DropdownMenuSeparator } from '@radix-ui/react-dropdown-menu'
 
-function FileCardAction({ file }: { file: Doc<'files'> }) {
+function FileCardAction({
+  file,
+  isFavorited,
+}: {
+  file: Doc<'files'>
+  isFavorited: boolean
+}) {
   const [isConfirmOpen, setIsConfirmOpen] = useState<boolean>(false)
   const deleteFile = useMutation(api.files.deleteFile)
+  const toggleFavorite = useMutation(api.files.toggleFavorite)
+
   return (
     <>
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
@@ -79,16 +90,43 @@ function FileCardAction({ file }: { file: Doc<'files'> }) {
           >
             <Trash2Icon className='w-4 h-4 text-red-500' /> Delete
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => {
+              toggleFavorite({
+                fileId: file._id,
+              })
+            }}
+            className='flex gap-1 items-center cursor-pointer'
+          >
+            {isFavorited ? (
+              <div className='flex gap-1 items-center'>
+                <StarIcon className='w-4 h-4' /> Unfavorite
+              </div>
+            ) : (
+              <div className='flex gap-1 items-center'>
+                <StarHalf className='w-4 h-4' /> Favorite
+              </div>
+            )}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </>
   )
 }
 
-export const FileCard = ({ file }: { file: Doc<'files'> }) => {
+export const FileCard = ({
+  file,
+  favorites,
+}: {
+  file: Doc<'files'>
+  favorites: Doc<'favorites'>[]
+}) => {
   const fileUrl = useQuery(api.files.getImageUrl, {
     imageId: file.fileId,
   })
+  const isFavorited = favorites.some((favorite) => favorite.fileId === file._id)
+
   const types = {
     image: <ImageIcon />,
     pdf: <FileTextIcon />,
@@ -104,7 +142,7 @@ export const FileCard = ({ file }: { file: Doc<'files'> }) => {
           {file.name}
         </CardTitle>
         <div className='absolute top-0 right-2 '>
-          <FileCardAction file={file} />
+          <FileCardAction file={file} isFavorited={isFavorited} />
         </div>
       </CardHeader>
       <CardContent className='h-[200px] flex justify-center items-center'>

@@ -7,7 +7,7 @@ export async function getUser(
 ) {
   const user = await ctx.db
     .query('users')
-    .withIndex('tokenIdentifier', (q) =>
+    .withIndex('by_tokenIdentifier', (q) =>
       q.eq('tokenIdentifier', tokenIdentifier)
     )
     .first()
