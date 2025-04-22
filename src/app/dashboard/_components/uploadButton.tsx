@@ -66,6 +66,11 @@ export default function UploadButton() {
       const { storageId } = await result.json()
       const types = {
         'image/png': 'image',
+        'image/jpeg': 'image',
+        'image/jpg': 'image',
+        'image/webp': 'image',
+        'image/gif': 'image',
+        'image/svg+xml': 'image',
         'application/pdf': 'pdf',
         'text/csv': 'csv',
       } as Record<string, Doc<'files'>['type']>
@@ -97,7 +102,7 @@ export default function UploadButton() {
     >
       {' '}
       <DialogTrigger asChild>
-        <Button onClick={() => {}}>Click me Know</Button>
+        <Button>Upload File</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

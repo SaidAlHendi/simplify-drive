@@ -8,7 +8,7 @@ import {
 } from './_generated/server'
 import { getUser } from './users'
 import { fileTypes, roles } from './schema'
-import { Id } from './_generated/dataModel'
+import { Doc, Id } from './_generated/dataModel'
 import { access } from 'fs'
 
 export const generateUploadUrl = mutation(async (ctx) => {
@@ -61,6 +61,7 @@ export const getFiles = query({
     query: v.optional(v.string()),
     favorites: v.optional(v.boolean()),
     deletedOnly: v.optional(v.boolean()),
+    type: v.optional(fileTypes),
   },
   async handler(ctx, args) {
     const hasAccess = await hatAccessToOrg(ctx, args.orgId)
@@ -104,27 +105,10 @@ export const getFiles = query({
     if (args.deletedOnly) {
       files = files.filter((file) => file.shouldDelete)
     }
+    if (args.type) {
+      files = files.filter((file) => file.type === args.type)
+    }
     return files
-  },
-})
-
-export const deleteFile = mutation({
-  args: { fileId: v.id('files') },
-  async handler(ctx, args) {
-    const hasAccess = await hasAccessToFile(ctx, args.fileId)
-    if (!hasAccess) {
-      throw new ConvexError('You dont have access to delete this file!')
-    }
-    const isAdmin =
-      hasAccess.user.orgIds.find((org) => org.orgId === hasAccess.file.orgId)
-        ?.role === 'admin'
-    if (!isAdmin) {
-      throw new ConvexError('you dount have access to delete this file')
-    }
-    await ctx.db.patch(args.fileId, {
-      shouldDelete: true,
-    })
-    // await ctx.db.delete(args.fileId)
   },
 })
 
@@ -134,7 +118,51 @@ export const getImageUrl = query({
     return await ctx.storage.getUrl(args.imageId)
   },
 })
+function assertCanDeleteFile(user: Doc<'users'>, file: Doc<'files'>) {
+  const canDelete =
+    file.userId === user._id ||
+    user.orgIds.find((org) => org.orgId === file.orgId)?.role === 'admin'
 
+  if (!canDelete) {
+    throw new ConvexError('you have no acces to delete this file')
+  }
+}
+
+export const deleteFile = mutation({
+  args: { fileId: v.id('files') },
+  async handler(ctx, args) {
+    const access = await hasAccessToFile(ctx, args.fileId)
+
+    if (!access) {
+      throw new ConvexError('no access to file')
+    }
+
+    assertCanDeleteFile(access.user, access.file)
+
+    await ctx.db.patch(args.fileId, {
+      shouldDelete: true,
+      deletedAt: Date.now(),
+    })
+  },
+})
+
+export const restoreFile = mutation({
+  args: { fileId: v.id('files') },
+  async handler(ctx, args) {
+    const access = await hasAccessToFile(ctx, args.fileId)
+
+    if (!access) {
+      throw new ConvexError('no access to file')
+    }
+
+    assertCanDeleteFile(access.user, access.file)
+
+    await ctx.db.patch(args.fileId, {
+      shouldDelete: false,
+      deletedAt: undefined,
+    })
+  },
+})
 export const toggleFavorite = mutation({
   args: { fileId: v.id('files') },
   async handler(ctx, args) {
@@ -211,35 +239,20 @@ export const getAllFavorites = query({
   },
 })
 
-export const restoreFile = mutation({
-  args: { fileId: v.id('files') },
-  async handler(ctx, args) {
-    const hasAccess = await hasAccessToFile(ctx, args.fileId)
-    if (!hasAccess) {
-      throw new ConvexError('You dont have access to delete this file!')
-    }
-    const isAdmin =
-      hasAccess.user.orgIds.find((org) => org.orgId === hasAccess.file.orgId)
-        ?.role === 'admin'
-    if (!isAdmin) {
-      throw new ConvexError('you dount have access to delete this file')
-    }
-    await ctx.db.patch(args.fileId, {
-      shouldDelete: false,
-    })
-  },
-})
-
 export const deleteForEver = internalMutation({
   args: {},
   async handler(ctx) {
-    const files = await ctx.db
+    const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000
+    const now = Date.now()
+    let files = await ctx.db
       .query('files')
       .withIndex('by_shouldDelete', (q) => q.eq('shouldDelete', true))
       .collect()
-
+    const oldFiles = files.filter(
+      (file) => file.deletedAt && now - file.deletedAt > THIRTY_DAYS
+    )
     await Promise.all(
-      files.map(async (file) => {
+      oldFiles.map(async (file) => {
         await ctx.storage.delete(file.fileId)
         return await ctx.db.delete(file._id)
       })

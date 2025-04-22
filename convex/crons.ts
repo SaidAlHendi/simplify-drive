@@ -3,9 +3,12 @@ import { internal } from './_generated/api'
 
 const crons = cronJobs()
 
-crons.interval(
-  'delete any old files marked for deletion',
-  { minutes: 1 },
+crons.daily(
+  'Delete files that were in trash for 30+ days',
+  {
+    hourUTC: 17,
+    minuteUTC: 30,
+  },
   internal.files.deleteForEver
 )
 
