@@ -14,7 +14,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils' // falls du ein `cn()` Utility nutzt (optional)
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 // Menu items
 const items = [

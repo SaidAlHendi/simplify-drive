@@ -3,9 +3,6 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { ConvexClientProvider } from './ConvexClientProvider'
 import { Toaster } from 'sonner'
-import { Header } from './dashboard/_components/header'
-import { Footer } from './dashboard/_components/footer'
-import { SidebarProvider } from '@/components/ui/sidebar'
 
 const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {

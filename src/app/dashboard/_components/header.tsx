@@ -4,7 +4,6 @@ import { SidebarTrigger } from '@/components/ui/sidebar'
 import {
   OrganizationSwitcher,
   SignInButton,
-  SignedIn,
   SignedOut,
   UserButton,
   useSession,

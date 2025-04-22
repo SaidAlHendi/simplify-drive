@@ -99,7 +99,7 @@ export default function FilesBrowser({
             <Select
               value={type}
               onValueChange={(newType) => {
-                setType(newType as any)
+                setType(newType as Doc<'files'>['type'])
               }}
             >
               <SelectTrigger

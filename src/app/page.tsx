@@ -4,21 +4,13 @@ import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
-  CheckCircle2,
   CloudUpload,
-  FileIcon,
-  Globe,
-  Lock,
   PackageOpen,
   Share2,
   Shield,
-  Smartphone,
-  Star,
-  Users,
 } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
 import { Header } from './dashboard/_components/header'
 import { Footer } from './dashboard/_components/footer'
 

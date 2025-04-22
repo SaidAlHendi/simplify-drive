@@ -1,9 +1,7 @@
 import React from 'react'
 import FilesBrowser from '../_components/filesBrowser'
 
-type Props = {}
-
-const page = (props: Props) => {
+const page = () => {
   return (
     <div>
       <FilesBrowser title={'Your Files'} />

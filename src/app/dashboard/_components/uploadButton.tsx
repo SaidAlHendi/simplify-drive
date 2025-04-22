@@ -87,6 +87,8 @@ export default function UploadButton() {
         description: 'Now everyone can view your file',
       })
     } catch (error) {
+      console.error('Upload failed:', error)
+
       toast.error('Something went wrong', {
         description: 'Your file could not be uploaded, try again later',
       })
@@ -127,10 +129,11 @@ export default function UploadButton() {
                 name='file'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
+                    <FormLabel>File</FormLabel>
                     <FormControl>
                       <Input
                         onChange={(e) => field.onChange(e.target.files)}
+                        accept='image/*,application/pdf,text/csv'
                         type='file'
                       />
                     </FormControl>
@@ -146,8 +149,8 @@ export default function UploadButton() {
                 {form.formState.isSubmitting && (
                   <Loader2 className='h-4 w-4 animate-spin' />
                 )}
-                Submit
-              </Button>{' '}
+                {form.formState.isSubmitting ? 'Uploading...' : 'Submit'}
+              </Button>
             </form>
           </Form>
         </DialogHeader>
